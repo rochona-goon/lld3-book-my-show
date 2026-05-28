@@ -2,49 +2,38 @@
 LLD implementation of a movie ticket booking system (BookMyShow) in Java Spring Boot.
 
 
-🚀 **Recent Updates**
-The latest commit introduces the foundational building blocks of the application:
+🚀 **Recent Updates:** User Registration Feature
+We have successfully implemented the User Registration feature! 
+This enhancement introduces a complete, secure flow for registering new users into the BookMyShow system, 
+adhering strictly to clean code architecture and Low-Level Design (LLD) principles.
 
-* **Models**: Core entities like Booking, Show, Seat, Theatre, and User.
+📁 **Updated Project Structure**
+The following packages were created/updated to support this feature:
 
-* **Services**: Implementation of BookingService to handle ticket reservation logic.
+**Controllers/:** Contains UserController.java to expose endpoint logic for registration requests.
 
-* **DTOs**: Decoupled request/response handling using BookingRequestDto and BookingResponseDto.
+**DTOs/:** Added RegisterUserRequestDto.java and RegisterUserResponseDto.java to abstract data transfer and handle request/response payloads cleanly.
 
-* **Enums**: Comprehensive domain constants for BookingStatus, SeatStatus, PaymentMode, and more.
+**Services/:** Contains UserService.java handling the core business logic, user validations, and password security.
 
-🏗️ **Project Architecture**
-The project is organized into layers to ensure a clean separation of concerns:
+**Repositories/:** Added UserRepository.java to manage data persistence and lookups for User entities.
 
+**Exceptions/:** Added domain-specific exceptions (e.g., handling duplicate users or invalid inputs).
 
-**src/main/java/com/scaler/bookMyshow/**
-
-├── Controllers/   # Entry points for the API (e.g., BookingController)
-
-├── Services/      # Core business logic and validations
-
-├── Models/        # Database entities and domain objects
-
-├── DTOs/          # Data Transfer Objects for client-server communication
-
-├── Enums/         # Domain-specific constants and statuses
-
-└── Repositories/  # (Next step) Data access layer
+**Config/:** Updated to handle configuration beans necessary for the service and security layer (such as BCrypt password encoders).
 
 
-🛠️ **Tech Stack**
 
-* Language: Java
+🔄 **End-to-End Registration Flow**
+**Client Request:** The client sends user details (name, email, password) mapped via the RegisterUserRequestDto.
 
-* Framework: Spring Boot
+**Controller Layer:** UserController receives the data, initiates basic validation, and routes it to the service layer.
 
-* Database: (Likely MySQL/PostgreSQL via JPA)
+**Service Layer:** UserService processes the request:
+* Checks if the user already exists via UserRepository.
+* Throws custom exceptions from the Exceptions package if data is invalid.
+* Hashes/encrypts the user password for security.
 
-* Build Tool: Maven
+**Data Persistence:** The service saves the new User model into the database using UserRepository.
 
-💡 Key Features (In Progress)
-Booking Flow: Logic to initiate bookings, handle payments, and update statuses.
-
-Seat Management: Tracking ShowSeat availability and handling various SeatStatus.
-
-Extensible Enums: Ready-to-use support for multiple Language, Genre, and Feature types.
+**Response Delivery:** The controller transforms the saved entity into a RegisterUserResponseDto (with a success status and user ID) and sends it back to the client.
