@@ -1,6 +1,7 @@
 package com.scaler.bookMyshow.Enums;
 
 public enum BookingStatus {
-    SUCCESS,
-    FAILURE
+    BOOKED,
+    CANCELLED,
+    UNPAID
 }

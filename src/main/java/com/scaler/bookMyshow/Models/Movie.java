@@ -4,6 +4,7 @@ import com.scaler.bookMyshow.Enums.Genre;
 import com.scaler.bookMyshow.Enums.Language;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +27,9 @@ public class Movie extends BaseModel{
     private List<Language> languages;
 
     private int rating;
+
+    @OneToMany(mappedBy = "movie")
+    private List<UserRating> userRatings;
     private double duration;
 
 }

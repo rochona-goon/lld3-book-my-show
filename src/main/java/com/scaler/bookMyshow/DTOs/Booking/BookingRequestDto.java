@@ -1,7 +1,6 @@
-package com.scaler.bookMyshow.DTOs;
+package com.scaler.bookMyshow.DTOs.Booking;
 
 import com.scaler.bookMyshow.Models.ShowSeat;
-import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,5 +11,5 @@ import java.util.List;
 public class BookingRequestDto {
     private int userId;
     private int showId;
-    private List<ShowSeat> showSeats;
+    private List<Integer> showSeatIds;
 }

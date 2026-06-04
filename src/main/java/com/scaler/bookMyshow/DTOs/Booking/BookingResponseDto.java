@@ -1,4 +1,4 @@
-package com.scaler.bookMyshow.DTOs;
+package com.scaler.bookMyshow.DTOs.Booking;
 
 import com.scaler.bookMyshow.Enums.BookingStatus;
 import jakarta.persistence.EnumType;
@@ -13,5 +13,5 @@ public class BookingResponseDto {
     private double amount;
 
     @Enumerated(value = EnumType.STRING)
-    private BookingStatus bookingStatus;
+    private BookingResponseStatus bookingStatus;
 }
