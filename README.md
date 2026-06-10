@@ -2,38 +2,41 @@
 LLD implementation of a movie ticket booking system (BookMyShow) in Java Spring Boot.
 
 
-🚀 **Recent Updates:** User Registration Feature
-We have successfully implemented the User Registration feature! 
-This enhancement introduces a complete, secure flow for registering new users into the BookMyShow system, 
-adhering strictly to clean code architecture and Low-Level Design (LLD) principles.
+🚀 **Recent Updates:** Ticket Booking & Cancellation Features
+
+We have successfully introduced core features for Ticket Booking and Ticket Cancellation to
+the BookMyShow application. This update refactors the BookingController to expose clean 
+RESTful endpoints, handles multi-layered business logic with robust exception validation, 
+and ensures database concurrency safety.
 
 📁 **Updated Project Structure**
 The following packages were created/updated to support this feature:
 
-**Controllers/:** Contains UserController.java to expose endpoint logic for registration requests.
+**Controllers/:** Contains BookingController.java to expose endpoint logic for booking requests (bookTicket and cancelTicket).
 
-**DTOs/:** Added RegisterUserRequestDto.java and RegisterUserResponseDto.java to abstract data transfer and handle request/response payloads cleanly.
+**DTOs/:** Added BookingRequestDto.java, BookingResponseDto.java, CancelBookingRequestDto.java and CancelBookingResponseDto.java to abstract data transfer and handle request/response payloads cleanly.
 
-**Services/:** Contains UserService.java handling the core business logic, user validations, and password security.
+**Services/:** Contains BookingService.java and BookingServiceImpl.java handling the core business logic for creating a booking and cancelling a booking.
 
-**Repositories/:** Added UserRepository.java to manage data persistence and lookups for User entities.
+**Repositories/:** Added BookingRepository.java, ShowRepository.java,ShowSeatRepository.java and ShowSeatTypeRepository.java to manage data persistence and lookups for Booking entities.
 
-**Exceptions/:** Added domain-specific exceptions (e.g., handling duplicate users or invalid inputs).
+**Exceptions/:** Introduced domain-specific runtime exceptions for granular error handling (UserNotFoundException, ShowNotFoundException, SeatNotAvailableException, BookingNotFoundException).
 
-**Config/:** Updated to handle configuration beans necessary for the service and security layer (such as BCrypt password encoders).
+🔄 **End-to-End Booking Flow**
+**Client Request:** The client sends booking details (userId, showId, seats, bookingId) mapped via the BookingRequestDto and CancelBookingRequestDto.
 
+**Controller Layer:** BookingController receives the data, initiates basic validation, and routes it to the service layer.
 
+**Service Layer:** BookingService processes the request:
+* **Validations:** Automatically validates the existence of the user, show, and seat IDs before proceeding with any state changes.
+* **Dynamic Price Calculation:** Fetches configured seat type pricing via ShowSeatTypeRepository and computes the exact total dynamically during booking creation.
+* **Initial Booking State:** New bookings are securely saved with an initial UNPAID status, ready for a payment gateway integration step.
+* **Initial Cancellation State:** Cancelled bookings are securely saved with an initial CANCELLED status, ready for a payment gateway integration step.
 
-🔄 **End-to-End Registration Flow**
-**Client Request:** The client sends user details (name, email, password) mapped via the RegisterUserRequestDto.
+**Data Persistence:** The service saves the booked seats per booking into the database using BookingRepository, ShowRepository, ShowSeatRepository.
+To prevent double-booking issues in high-traffic scenarios (e.g., multiple users trying to grab the same seat simultaneously),
+we introduced Pessimistic Locking:
 
-**Controller Layer:** UserController receives the data, initiates basic validation, and routes it to the service layer.
-
-**Service Layer:** UserService processes the request:
-* Checks if the user already exists via UserRepository.
-* Throws custom exceptions from the Exceptions package if data is invalid.
-* Hashes/encrypts the user password for security.
-
-**Data Persistence:** The service saves the new User model into the database using UserRepository.
-
-**Response Delivery:** The controller transforms the saved entity into a RegisterUserResponseDto (with a success status and user ID) and sends it back to the client.
+* The ShowSeatRepository now utilizes @Lock(LockModeType.PESSIMISTIC_WRITE) when querying selected seats via findAllByIdWithLock.
+* This ensures that the database rows for the requested seats are securely locked
+for updates until the active transaction completes, effectively eliminating race conditions.
