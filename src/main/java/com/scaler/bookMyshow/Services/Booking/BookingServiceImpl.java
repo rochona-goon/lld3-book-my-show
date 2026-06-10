@@ -7,8 +7,10 @@ import com.scaler.bookMyshow.Exceptions.BookingNotFoundException;
 import com.scaler.bookMyshow.Exceptions.SeatNotAvailableException;
 import com.scaler.bookMyshow.Exceptions.ShowNotFoundException;
 import com.scaler.bookMyshow.Exceptions.UserNotFoundException;
+import com.scaler.bookMyshow.Factories.PricingFactory;
 import com.scaler.bookMyshow.Models.*;
 import com.scaler.bookMyshow.Repositories.*;
+import com.scaler.bookMyshow.Strategies.PricingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,19 +24,22 @@ public class BookingServiceImpl implements BookingService{
     private final BookingRepository bookingRepository;
     private final ShowSeatRepository showSeatRepository;
     private final ShowSeatTypeRepository showSeatTypeRepository;
+    private final PricingFactory pricingFactory;
 
     @Autowired
     public BookingServiceImpl(UserRepository userRepository,
                                 ShowRepository showRepository,
                                 BookingRepository bookingRepository,
                                 ShowSeatRepository showSeatRepository,
-                              ShowSeatTypeRepository showSeatTypeRepository){
+                              ShowSeatTypeRepository showSeatTypeRepository,
+                              PricingFactory  pricingFactory){
 
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.showRepository = showRepository;
         this.showSeatRepository = showSeatRepository;
         this.showSeatTypeRepository = showSeatTypeRepository;
+        this.pricingFactory = pricingFactory;
 
     }
     @Override
@@ -86,14 +91,16 @@ public class BookingServiceImpl implements BookingService{
 
 
         // Convert to Map for faster lookup: SeatType -> Price
-        Map<SeatType, Long> priceMap = new HashMap<>();
+        Map<SeatType, ShowSeatType> priceMap = new HashMap<>();
         for (ShowSeatType sst : showSeatTypes) {
-            priceMap.put(sst.getSeatType(), sst.getSeatPrice());
+            priceMap.put(sst.getSeatType(), sst);
         }
 
 
 
         long bookingAmount = 0;
+        PricingStrategy pricingStrategy =
+                pricingFactory.getPricingStrategy(currentShow.getStartTime());
 
         for(ShowSeat showSeat : showSeats) {
              // Get price directly from Map
@@ -101,7 +108,10 @@ public class BookingServiceImpl implements BookingService{
             if(!priceMap.containsKey(type)){
                 throw new IllegalArgumentException("pricing not configured for seat type: "+ type);
             }
-            bookingAmount += priceMap.get(type);
+
+            ShowSeatType showSeatType = priceMap.get(type);
+
+            bookingAmount += pricingStrategy.calculatePrice(showSeatType, currentShow.getStartTime());
         }
 
 
