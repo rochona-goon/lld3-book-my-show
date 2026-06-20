@@ -8,6 +8,7 @@ import com.scaler.bookMyshow.Models.Booking;
 import com.scaler.bookMyshow.Models.Payment;
 import com.scaler.bookMyshow.Repositories.BookingRepository;
 import com.scaler.bookMyshow.Repositories.PaymentRepository;
+import com.scaler.bookMyshow.Services.Notification.BookingEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +21,16 @@ public class PaymentServiceImpl implements PaymentService{
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentGateway paymentGateway;
+    private final BookingEventPublisher bookingEventPublisher; //
 
     @Autowired
     public PaymentServiceImpl(BookingRepository bookingRepository,
-                              PaymentRepository paymentRepository,
-                              PaymentGateway paymentGateway) {
+                                PaymentRepository paymentRepository,
+                                PaymentGateway paymentGateway, BookingEventPublisher bookingEventPublisher) {
         this.bookingRepository = bookingRepository;
         this.paymentRepository = paymentRepository;
         this.paymentGateway = paymentGateway;
+        this.bookingEventPublisher = bookingEventPublisher;
     }
 
     @Override
@@ -47,6 +50,7 @@ public class PaymentServiceImpl implements PaymentService{
         payment.setUser(booking.getUser());
         payment.setPaymentStatus(PaymentStatus.INITIATED);
 
+        paymentRepository.save(payment);
 
         PaymentResponse response = this.paymentGateway.processPayment(booking.getBookingAmount());
 
@@ -54,27 +58,35 @@ public class PaymentServiceImpl implements PaymentService{
             payment.setTransactionNo(response.getTransactionId());
         }
 
+        BookingEventType eventType;
         if(response.getPaymentStatus().equals(PaymentStatus.SUCCESS)){
             payment.setPaymentStatus(PaymentStatus.SUCCESS);
 
             booking.getShowSeats().forEach(showSeat -> {
                 showSeat.setSeatStatus(SeatStatus.BOOKED);
+                showSeat.setBlockedAt(null);
+
             });
 
             booking.setBookingStatus(BookingStatus.CONFIRMED);
+            eventType = BookingEventType.BOOKING_CONFIRMED;
 
         }else{
             payment.setPaymentStatus(PaymentStatus.FAILURE);
 
             booking.getShowSeats().forEach(showSeat -> {
                 showSeat.setSeatStatus(SeatStatus.AVAILABLE);
+                showSeat.setBlockedAt(null);
             });
 
             booking.setBookingStatus(BookingStatus.CANCELLED);
+            eventType = BookingEventType.PAYMENT_FAILED;
         }
 
-        paymentRepository.save(payment);
-        bookingRepository.save(booking);
+        payment = paymentRepository.save(payment);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        bookingEventPublisher.publish(savedBooking,eventType);
 
 
         return payment;

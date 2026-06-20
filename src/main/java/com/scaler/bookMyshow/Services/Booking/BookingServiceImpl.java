@@ -1,5 +1,6 @@
 package com.scaler.bookMyshow.Services.Booking;
 
+import com.scaler.bookMyshow.Enums.BookingEventType;
 import com.scaler.bookMyshow.Enums.BookingStatus;
 import com.scaler.bookMyshow.Enums.SeatStatus;
 import com.scaler.bookMyshow.Enums.SeatType;
@@ -11,6 +12,7 @@ import com.scaler.bookMyshow.Factories.PricingFactory;
 import com.scaler.bookMyshow.Models.*;
 import com.scaler.bookMyshow.Repositories.*;
 import com.scaler.bookMyshow.Strategies.PricingStrategy;
+import com.scaler.bookMyshow.Services.Notification.BookingEventPublisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class BookingServiceImpl implements BookingService{
     private final ShowSeatRepository showSeatRepository;
     private final ShowSeatTypeRepository showSeatTypeRepository;
     private final PricingFactory pricingFactory;
+    private final BookingEventPublisher bookingEventPublisher;
 
     @Autowired
     public BookingServiceImpl(UserRepository userRepository,
@@ -32,7 +35,8 @@ public class BookingServiceImpl implements BookingService{
                                 BookingRepository bookingRepository,
                                 ShowSeatRepository showSeatRepository,
                               ShowSeatTypeRepository showSeatTypeRepository,
-                              PricingFactory  pricingFactory){
+                              PricingFactory  pricingFactory,
+                              BookingEventPublisher bookingEventPublisher){
 
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -40,6 +44,7 @@ public class BookingServiceImpl implements BookingService{
         this.showSeatRepository = showSeatRepository;
         this.showSeatTypeRepository = showSeatTypeRepository;
         this.pricingFactory = pricingFactory;
+        this.bookingEventPublisher = bookingEventPublisher;
 
     }
     @Override
@@ -65,11 +70,15 @@ public class BookingServiceImpl implements BookingService{
         // Check if the show seats are available
         List<String> blockedSeats = new ArrayList<>();
         List<ShowSeat> showSeats = showSeatRepository.findAllByIdWithLock(showSeatIds);
+
         if(showSeats.size() != showSeatIds.size()){
             throw  new SeatNotAvailableException("One or more selected seat Ids are invalid");
         }
 
         for(ShowSeat seat : showSeats){
+            if(!seat.getShow().equals(currentShow)){
+                throw new SeatNotAvailableException("Selected seats do not belong to the same show");
+            }
             if(!seat.getSeatStatus().equals(SeatStatus.AVAILABLE)){
                 blockedSeats.add(seat.getSeat().getRowVal()+" "+seat.getSeat().getColumnVal()+", ");
             }
@@ -83,6 +92,7 @@ public class BookingServiceImpl implements BookingService{
         // Block seats if available
         for(ShowSeat seat : showSeats){
             seat.setSeatStatus(SeatStatus.BLOCKED);
+            seat.setBlockedAt(new Date());
         }
 
         showSeatRepository.saveAll(showSeats);
@@ -142,13 +152,17 @@ public class BookingServiceImpl implements BookingService{
         List<ShowSeat> lockedSeats = showSeatRepository.findAllByIdWithLock(showSeatIds);
         for(ShowSeat showSeat : lockedSeats){
             showSeat.setSeatStatus(SeatStatus.AVAILABLE);
+            showSeat.setBlockedAt(null);
         }
         showSeatRepository.saveAll(lockedSeats);
 
         double bookingAmount = booking.getBookingAmount(); // Return to User source
 
         booking.setBookingStatus(BookingStatus.CANCELLED);
+        booking = bookingRepository.save(booking);
 
-        return bookingRepository.save(booking);
+        bookingEventPublisher.publish(booking, BookingEventType.BOOKING_CANCELLED);
+
+        return booking;
     }
 }
