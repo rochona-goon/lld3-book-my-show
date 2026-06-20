@@ -1,6 +1,6 @@
 package com.scaler.bookMyshow.Models;
 
-import com.scaler.bookMyshow.Enums.PaymentGateway;
+import com.scaler.bookMyshow.Enums.PaymentProvider;
 import com.scaler.bookMyshow.Enums.PaymentMode;
 import com.scaler.bookMyshow.Enums.PaymentStatus;
 import jakarta.persistence.Entity;
@@ -27,7 +27,7 @@ public class Payment extends BaseModel{
     private PaymentMode paymentMode;
 
     @Enumerated(value = EnumType.STRING)
-    private PaymentGateway paymentGateway;
+    private PaymentProvider paymentProvider;
 
     @Enumerated(value = EnumType.ORDINAL)
     private PaymentStatus paymentStatus;

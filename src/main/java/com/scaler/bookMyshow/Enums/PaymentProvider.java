@@ -1,6 +1,6 @@
 package com.scaler.bookMyshow.Enums;
 
-public enum PaymentGateway {
+public enum PaymentProvider {
     RAZORPAY,
     PHONEPE,
     PAYZAPP

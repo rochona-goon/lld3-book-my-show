@@ -1,7 +1,7 @@
 package com.scaler.bookMyshow.Enums;
 
 public enum BookingStatus {
-    BOOKED,
+    CONFIRMED,
     CANCELLED,
     UNPAID
 }
