@@ -2,38 +2,122 @@
 
 LLD implementation of a movie ticket booking system (BookMyShow) in Java Spring Boot.
 
-**🚀 Recent Updates:** Payment feature for Booking tickets
+### 🚀 Recent Updates: 
+**Notification Service Integration**
 
-We have successfully introduced a comprehensive payment module to handle ticket booking transactions 
-within the BookMyShow application. This update simulates the integration with third-party 
-payment gateways, introduces multi-layered business logic for managing transaction 
-states, and ensures robust handling of booking confirmations upon successful payments.
+We have successfully introduced a flexible and extensible notification framework into the BookMyShow application using the **Observer Design Pattern**.
+This enhancement enables the system to publish booking-related events and notify users through multiple communication channels without tightly coupling notification logic to the core business services.
 
-**📁 Updated Project Structure**
+
+
+### 📁 Updated Project Structure : 
 The following packages were created/updated to support this feature:
 
-**Controllers/:** Added PaymentController.java to expose RESTful endpoints for initiating and verifying payment requests, efficiently utilizing @RequestParam to capture URL parameters.
+### 1. Notification/
 
-**DTOs/:** Added PaymentRequestDto.java and PaymentResponseDto.java to abstract data transfer and handle the payment request/response payloads cleanly.
+**NotificationObserver.java**
 
-**Services/:** Contains PaymentService.java (and its implementation) handling the core business logic for processing payments, communicating with simulated gateways, and verifying transaction statuses.
+* Common observer contract implemented by all notification channels.
 
-**Models & Enums/:** Introduced the Payment entity, alongside necessary enums like PaymentStatus (SUCCESS, FAILED, PENDING), and PaymentMode to manage the transaction lifecycle.
+**EmailNotification.java**
 
-**Repositories/:** Added PaymentRepository.java to manage data persistence and lookups for Payment entities.
+* Sends booking-related notifications through email.
 
-**Exceptions/:** Introduced domain-specific runtime exceptions for granular error handling regarding payment timeouts, invalid booking states, or gateway failures.
+**WhatsappNotification.java**
 
-**🔄 End-to-End Payment Flow**
+* Sends booking-related notifications through WhatsApp.
 
-**Client Request:** Once a user locks in their seats (creating a PENDING booking), the client initiates a payment. The target bookingId is passed directly in the URL as a query parameter.
+**BookingEventPublisher.java**
 
-**Controller Layer:** PaymentController intercepts the request, extracts the bookingId using @RequestParam, validates the payload, and routes the combined data to the service layer.
+* Maintains a collection of registered notification observers.
+* Publishes booking events to all subscribed notification channels.
 
-**Service Layer:** PaymentService processes the request:
 
-**Routing & Processing:** Calculates the total amount and routes the request to the Payment Gateway (e.g., Razorpay).
+### 2.  Enums/
 
-**State Updates:** Upon a SUCCESS callback from the gateway, the service triggers an update to change the associated Booking status to CONFIRMED. If the payment fails or times out, it triggers logic to release the locked seats.
+Added:
 
-**Data Persistence:** The service saves the final Payment record into the database using PaymentRepository.
+**BookingEventType**
+
+Represents different booking lifecycle events that can trigger notifications.
+
+Supported events:
+
+* BOOKING_CONFIRMED
+* BOOKING_CANCELLED
+* PAYMENT_FAILED
+
+### 3. Services/
+
+**BookingService :**
+Modified to publish events when:
+
+* A booking is cancelled.
+
+**PaymentService :**
+Modified to publish events when:
+
+* A payment succeeds and the booking is confirmed.
+
+* A payment fails.
+
+
+### 🔄 End-to-End Notification Flow
+
+**--- Booking Confirmation ---**
+
+When a payment is successfully processed:
+
+1. Payment status is updated to SUCCESS.
+2. Booking status is updated to CONFIRMED.
+3. Seats are marked as BOOKED.
+4. PaymentService publishes a BOOKING_CONFIRMED event.
+5. BookingEventPublisher notifies all registered observers.
+6. Email and WhatsApp notifications are sent to the customer.
+
+**--- Payment Failure ---**
+
+When payment processing fails:
+
+1. Payment status is updated to FAILURE.
+2. Locked seats are released.
+3. Booking status is updated to CANCELLED.
+4. PaymentService publishes a PAYMENT_FAILED event.
+5. BookingEventPublisher notifies all registered observers.
+6. Email and WhatsApp notifications are sent to the customer.
+
+**--- Booking Cancellation ---**
+
+When a user cancels a booking:
+
+1. Booking status is updated to CANCELLED.
+2. Seats are released and marked AVAILABLE.
+3. BookingService publishes a BOOKING_CANCELLED event.
+4. BookingEventPublisher notifies all registered observers.
+5. Email and WhatsApp notifications are sent to the customer.
+
+---
+
+### 🏗️ Design Pattern Used
+
+**Observer Pattern**
+
+The notification system follows the Observer Pattern.
+
+```text
+BookingService / PaymentService
+            ↓
+     BookingEventPublisher
+            ↓
+     NotificationObserver
+          /      \
+         /        \
+EmailNotification  WhatsappNotification
+```
+
+**Benefits**
+
+* Loose coupling between business logic and notification channels.
+* New notification providers can be added without modifying BookingService or PaymentService.
+* Improved maintainability and extensibility.
+
