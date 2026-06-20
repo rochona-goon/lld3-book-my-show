@@ -22,7 +22,7 @@ public class Booking extends BaseModel{
     @OneToMany
     private List<ShowSeat> showSeats;
 
-    @OneToMany
+    @OneToMany(mappedBy = "booking")
     private List<Payment> payments;
 
     @Enumerated(value = EnumType.STRING)

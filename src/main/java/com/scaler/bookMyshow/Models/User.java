@@ -11,6 +11,5 @@ public class User extends BaseModel{
     private String userName;
     private String userEmail;
     private String password;
-//    private List<UserRating> userRatings;
-
+    private int phone;
 }
